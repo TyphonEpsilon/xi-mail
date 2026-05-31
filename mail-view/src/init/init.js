@@ -69,7 +69,12 @@ export async function init() {
             settingStore.domainList = setting.domainList;
             document.title = setting.title;
         } catch {
-            // standalone mode — server may not be reachable yet
+            if (!serverStore.isStandalone) {
+                serverStore.forceStandalone();
+                removeLoading();
+                router.replace({ name: 'setup' });
+                return;
+            }
         }
     }
 

@@ -22,7 +22,7 @@ export const useServerStore = defineStore('server', {
       return state.servers.filter(s => s.token)
     },
     needSetup(state) {
-      return isStandalone && state.servers.length === 0
+      return state.servers.length === 0
     },
     isStandalone: () => isStandalone,
   },
@@ -94,6 +94,13 @@ export const useServerStore = defineStore('server', {
 
     getActiveBaseURL() {
       return this.activeServer?.url || builtinBaseURL || '/api'
+    },
+
+    forceStandalone() {
+      this.servers = this.servers.filter(s => s.id !== 'local')
+      if (this.activeServerId === 'local') {
+        this.activeServerId = this.servers[0]?.id || null
+      }
     },
   },
 
