@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 const builtinBaseURL = import.meta.env.VITE_BASE_URL
+const workerURL = import.meta.env.VITE_WORKER_URL || ''
 const isStandalone = import.meta.env.VITE_STANDALONE === 'true'
   || (!builtinBaseURL || builtinBaseURL === '')
 
@@ -22,6 +23,7 @@ export const useServerStore = defineStore('server', {
       return state.servers.filter(s => s.token)
     },
     needSetup(state) {
+      if (workerURL) return false
       return state.servers.length === 0
     },
     isStandalone: () => isStandalone,
@@ -29,7 +31,22 @@ export const useServerStore = defineStore('server', {
 
   actions: {
     init() {
-      if (!isStandalone && this.servers.length === 0) {
+      if (workerURL) {
+        const existing = this.servers.find(s => s.id === 'env-worker')
+        if (!existing) {
+          this.servers = this.servers.filter(s => s.id !== 'local')
+          this.servers.unshift({
+            id: 'env-worker',
+            name: 'Default',
+            url: workerURL.replace(/\/+$/, ''),
+            token: localStorage.getItem('token') || '',
+            connected: false,
+          })
+        } else {
+          existing.url = workerURL.replace(/\/+$/, '')
+        }
+        this.activeServerId = 'env-worker'
+      } else if (!isStandalone && this.servers.length === 0) {
         this.servers.push({
           id: 'local',
           name: 'Local',
@@ -78,7 +95,7 @@ export const useServerStore = defineStore('server', {
         server.token = token
         server.connected = !!token
       }
-      if (!isStandalone && id === 'local') {
+      if (id === 'local' || id === 'env-worker') {
         localStorage.setItem('token', token)
       }
     },
